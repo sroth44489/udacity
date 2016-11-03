@@ -59,9 +59,10 @@ poi, finance_features = targetFeatureSplit( data )
 ### you'll want to change this line to 
 ### for f1, f2, _ in finance_features:
 ### (as it's currently written, the line below assumes 2 features)
-for f1, f2, _ in finance_features:
-    plt.scatter( f1, f2 )
-plt.show()
+#for f1, f2, _ in finance_features:
+#    plt.scatter( f1, f2 )
+#plt.show()
+
 
 ### cluster here; create predictions of the cluster labels
 ### for the data and store them to a list called pred
@@ -73,6 +74,25 @@ kmeans = KMeans(n_clusters = 2)
 kmeans.fit(finance_features)
 pred = kmeans.predict(finance_features)
 
+def stock_option_range(data_dict, key_value):
+    min_val = 1e9
+    max_val = 0
+    for key in data_dict.keys():
+        stock_option = data_dict[key][key_value]
+        if isinstance(stock_option, str):
+            pass
+        else:
+            if (stock_option > max_val):
+                max_val = stock_option
+            if (stock_option < min_val):
+                min_val = stock_option
+    print 'max ', key_value, ': ', max_val
+
+    print 'min ', key_value, ': ', min_val
+
+stock_option_range(data_dict, 'exercised_stock_options')
+stock_option_range(data_dict, 'salary')
+    
 ### rename the "name" parameter when you change the number of features
 ### so that the figure gets saved to a different file
 try:
