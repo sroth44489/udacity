@@ -46,7 +46,7 @@ class LearningAgent(Agent):
             #self.epsilon -= 0.05
             #self.epsilon -= 0.005
             #self.epsilon *= 0.985
-            self.epsilon = math.cos(self.trial * math.pi/2/200.00)
+            self.epsilon = math.cos(self.trial * math.pi/2/400.00)
             self.trial += 1
 
         return None
@@ -73,7 +73,7 @@ class LearningAgent(Agent):
 
         state = (waypoint, inputs['light'], inputs['left'], inputs['oncoming'])
 
-        # I don't think this is necessary????? createQ is called '
+        # I don't think this is necessary????? createQ is called during the Update function
         if self.learning:
             if state in self.Q:
                 pass
@@ -149,7 +149,7 @@ class LearningAgent(Agent):
             if random.random() < self.epsilon:
                 action = random.choice(self.valid_actions)
             else:
-                # return the action corresponding with the max Q value
+                # Find the maxQ value and the action associated with it
                 maxQ = None
                 if state in self.Q:
                     q_action_entries = self.Q[state]
@@ -160,7 +160,12 @@ class LearningAgent(Agent):
                         elif self.Q[state][test_action] > maxQ:
                             maxQ = self.Q[state][test_action]
                             action = test_action
-
+                if maxQ is None:
+                    pass
+                else:
+                    # If ther are more than one actions associated with the maxQ value, randomly choose one of them
+                    best_actions = [test_action for test_action in self.Q[state] if self.Q[state][test_action] == maxQ]
+                    action = random.choice(best_actions)
         return action
 
 
@@ -218,7 +223,7 @@ def run():
     #   learning   - set to True to force the driving agent to use Q-learning
     #    * epsilon - continuous value for the exploration factor, default is 1
     #    * alpha   - continuous value for the learning rate, default is 0.5
-    agent = env.create_agent(LearningAgent, learning=True, alpha=0.6)
+    agent = env.create_agent(LearningAgent, learning=True, alpha=0.65)
 
     ##############
     # Follow the driving agent
