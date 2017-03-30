@@ -18,7 +18,7 @@ def load_class_id(class1_points_file_name, class2_points_file_name, num_point_cl
     """
     This function loads the hand labeled data and returns a class_id label for the point
     cloud points. The data for the entire point cloud is stored in kdtree. The hand
-    segmented point clouds are stored in the files class1_points_file_name and 
+    segmented point clouds are stored in the files class1_points_file_name and
     class2_points_file_name. These files contain only the points belonging to
     the label class1 and class2.
 
@@ -29,7 +29,7 @@ def load_class_id(class1_points_file_name, class2_points_file_name, num_point_cl
 
     class2_points_file_name: string
         This is the path to the class 2 point cloud data
-    
+
     num_point_cloud_points: int
         The number of points in the full point cloud that is stored in kdtree
 
@@ -116,9 +116,85 @@ def load_training_data(point_cloud_file_name, class1_points_file_name, class2_po
 
     return data
 
+def get_training_files(data_file_path):
+    """
+    This function returns the training file names from a directory.
+
+    Parameters
+    -------------------
+    data_file_path: string
+        This is the path to the data directory
+
+    Return Values
+    -------------------
+    point_cloud_file_names:
+        The names of the .flt5.ply point cloud files in the directory
+
+    linear_file_names:
+        The names of the -Linear.ply files
+    """
+
+    only_files = [f for f in listdir(data_file_path) if isfile(join(data_file_path, f))]
+    linear_file_string = "-Linear.ply"
+    linear_file_names = [f for f in only_files if f[-len(linear_file_string):] == linear_file_string]
+    point_cloud_file_string = ".flt5.ply"
+    point_cloud_file_names = [f for f in only_files if f[-len(point_cloud_file_string):] == point_cloud_file_string]
+
+    return point_cloud_file_names, linear_file_names
+
+def load_all_training_data(data_file_path):
+    """
+    This function loads all of the training data contained in a directory.
+    The point cloud files should have the filename/names: foo.flt5.ply
+    The hand labeled data files should have the corresponding filename foo-Linear.ply
+
+    Parameters
+    -------------------
+    data_file_path: string
+        This is the path to the training data directory
+
+    Return Values
+    -------------------
+    point_cloud_points: pd.DataFrame
+        Contains the 'x', 'y', 'z', 'intensity' data
+
+    data: pd.DataFrame
+        Contains the features calculated from the point cloud as well as their 'class_id'
+
+    point_cloud_file_names: list of strings
+        The names of the .flt5.ply point cloud files in the directory
+
+    """
+    # Find the training data file names
+    point_cloud_file_names, linear_file_names = get_training_files(data_file_path)
+
+    print 'Training Data Files:'
+    print 'Point Cloud Files:'
+    print point_cloud_file_names
+    print 'Hand Segmented File Names'
+    print linear_file_names
+
+    # Load all of the training data
+    data = pd.DataFrame()
+    for point_cloud_file_name, linear_file_name,  in zip(point_cloud_file_names, linear_file_names):
+        new_data = load_training_data(data_file_path + point_cloud_file_name,
+                                      data_file_path + linear_file_name)
+        data = data.append(new_data, ignore_index=True)
+
+    # Remove the point cloud x,y,z data from the data frame. Those will not be used as training features
+    point_cloud_points = data[['x', 'y', 'z', 'intensity']]
+    del data['x']
+    del data['y']
+    del data['z']
+    del data['intensity']
+    return (point_cloud_points, data, point_cloud_file_names)
+
 def calculate_features(point_cloud_points, point_cloud_intensities, kdtree, pca_min_radius=0.06):
     """
     This function calculates the geometric and directional features of a point cloud.
+    Each pixel in the 3D point cloud has a value (x ,y, z, intensity).
+    This raw data cannot be used by the classifier because a single point does not contain
+    enough information to describe what it is a point of.
     Instead, the features describing a point must come from a region of the point cloud.
     Given the size of object being classified and the resolution of the flash lidar,
     a 6cm cube is an appropriate volume. However, because points within the point cloud
@@ -139,7 +215,7 @@ def calculate_features(point_cloud_points, point_cloud_intensities, kdtree, pca_
     plane are used, giving a total of 4 directional features. To estimate the confidence
     in these features, the features are scaled according to the strengths of their
     corresponding eigen values:
-    scale{v_t,v_n}={linearness,surfaceness }/(max(linearness,pointness,surfaceness)). 
+    scale{v_t,v_n}={linearness,surfaceness }/(max(linearness,pointness,surfaceness)).
     The complete feature vector concatenates the 3 geometric features and 4 directional
     features for a resulting 7D feature vector.
 
@@ -173,7 +249,7 @@ def calculate_features(point_cloud_points, point_cloud_intensities, kdtree, pca_
     # put a floor on the number of points used in pca.
     pca_min_points = 15
 
-    # Define the names of hte features found
+    # Define the names of the features found
     feature_names = ["x", "y", "z", "intensity", "pointness", "surfaceness", "linearness",
                      "cos_tangent", "sin_tangent", "cos_normal", "sin_normal"]
     # Features is a 2D matrix. Each row is the features of a point in the point cloud
@@ -315,7 +391,6 @@ def animate_classifier(data_file_path, classifier_save_file_name):
         only_files = [f for f in listdir(data_file_path) if isfile(join(data_file_path, f))]
         ply_files = [f for f in only_files if f[-9:] == '.flt4.ply']
         ply_files.sort()
-        # ply_files = [ply_files[index] for index in range(30)]
 
         for point_cloud_file_name in ply_files:
             point_cloud_extension = '.flt4.ply'
